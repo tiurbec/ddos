@@ -1,11 +1,18 @@
 #!/bin/bash
 
-. /root/git/ddos/ddostool.conf
-
 #set -x
 
-echoerr() { echo "$@" 1>&2; }
-echolog() { logger -p $DT_LOGFAC -t $DT_LOGTAG "$@"; }
+echoerr() 
+{ 
+  #Will output all params to STDERR
+  echo "$@" 1>&2
+}
+
+echolog() 
+{ 
+  #Will write message to syslog
+  logger -p $DT_LOGFAC -t $DT_LOGTAG "$@"
+}
 
 check_binaries()
 {
@@ -164,30 +171,36 @@ remove_ipt_chain()
     $IPTABLES -X $CHAINNAME
   fi
 }
-# Main stuff
 
-check_binaries
+# Main
+main_func()
+{
+  check_binaries
 
-trap "{ echolog \"Exiting\" ; remove_ipt_chain ; exit 0; }" SIGINT SIGTERM
+  trap "{ echolog \"Exiting\" ; remove_ipt_chain ; exit 0; }" SIGINT SIGTERM
 
-touch $BANDB
-echolog "removing ipt chain"
-remove_ipt_chain
-echolog "creating ipt chain"
-create_ipt_chain
-echolog "starting loop"
-( 
-while [ 1 -eq 1 ]
-do 
-  TMPIPS=$($MKTEMP $DT_TMP/ddosips.XXXXXX)
-  TMPBADIPS=$($MKTEMP $DT_TMP/ddosbadips.XXXXXX)
-  TMPBANIPS=$($MKTEMP $DT_TMP/ddosbanips.XXXXXX)
-  find_bad
-  unban_ips
-  ban_ips
-  rm -f $TMPBADIPS
-  rm -f $TMPIPS
-  rm -f $TMPBANIPS
-  sleep $DT_DELAY
-done 
-) &
+  touch $BANDB
+  echolog "removing ipt chain"
+  remove_ipt_chain
+  echolog "creating ipt chain"
+  create_ipt_chain
+  echolog "starting loop"
+  ( 
+  while [ 1 -eq 1 ]
+  do 
+    TMPIPS=$($MKTEMP $DT_TMP/ddosips.XXXXXX)
+    TMPBADIPS=$($MKTEMP $DT_TMP/ddosbadips.XXXXXX)
+    TMPBANIPS=$($MKTEMP $DT_TMP/ddosbanips.XXXXXX)
+    find_bad
+    unban_ips
+    ban_ips
+    rm -f $TMPBADIPS
+    rm -f $TMPIPS
+    rm -f $TMPBANIPS
+    sleep $DT_DELAY
+  done 
+  ) &
+}
+
+main_func
+
