@@ -64,48 +64,56 @@ check_binaries()
   if ! [ -x $IPTABLES ];
   then
     echoerr "$IPTABLES not found. Check the config file"
+    echollog "error" "$IPTABLES not found. Check the config file"
     exit 1
   fi
 
   if ! [ -x $NETSTAT ];
   then
     echoerr "$NETSTAT not found. Check the config file"
+    echollog "error" "$NETSTAT not found. Check the config file"
     exit 1
   fi
 
   if ! [ -x $AWK ];
   then
     echoerr "$AWK not found. Check the config file"
+    echollog "error" "$AWK not found. Check the config file"
     exit 1
   fi
 
   if ! [ -x $CUT ];
   then
     echoerr "$CUT not found. Check the config file"
+    echollog "error" "$CUT not found. Check the config file"
     exit 1
   fi
 
   if ! [ -x $SORT ];
   then
     echoerr "$SORT not found. Check the config file"
+    echollog "error" "$SORT not found. Check the config file"
     exit 1
   fi
 
   if ! [ -x $UNIQ ];
   then
     echoerr "$UNIQ not found. Check the config file"
+    echollog "error" "$UNIQ not found. Check the config file"
     exit 1
   fi
 
   if ! [ -x $HEAD ];
   then
     echoerr "$HEAD not found. Check the config file"
+    echollog "error" "$HEAD not found. Check the config file"
     exit 1
   fi
 
   if ! [ -x $MKTEMP ];
   then
     echoerr "$MKTEMP not found. Check the config file"
+    echollog "error" "$MKTEMP not found. Check the config file"
     exit 1
   fi
 
@@ -204,7 +212,7 @@ create_ipt_chain()
   $IPTABLES -N $CHAINNAME
   $IPTABLES -I INPUT -p tcp -m multiport --dports 80,443 -j $CHAINNAME
   $IPTABLES -I $CHAINNAME -j RETURN
-
+  echollog "debug" "Created \"$CHAINNAME\" chain"
 }
 
 remove_ipt_chain()
@@ -232,6 +240,7 @@ finish()
   echollog "debug" "finish()"
   remove_ipt_chain 
   echollog "debug" "Chain removed"
+  echollog "info" "Service ddostool stopped"
 }
 
 # Main loop
@@ -254,6 +263,7 @@ main_func()
   echollog "debug" "Starting main loop"
   (
   trap "{ finish; }" EXIT
+  echollog "info" "Service ddostool started"
   while :
   do 
     echollog "debug" "================================================================================"
