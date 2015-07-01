@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#set -x
 
 echoerr() 
 { 
@@ -52,7 +51,6 @@ echollog()
         *)      confLevel=3
   esac
 
-#  echolog "echollog: level=$level confLevel=$confLevel"
   if [ "$level" -lt "$confLevel" ];
   then
     echolog $logStr
@@ -250,11 +248,6 @@ main_func()
   echollog "debug" "Checking binaries"
   check_binaries
 
-#  trap "{ echollog \"debug\" \"Exiting\" ; remove_ipt_chain ; exit 0; }" SIGINT SIGTERM
-#  trap finish SIGINT SIGTERM SIGQUIT EXIT
-#  trap 'finish' SIGTERM SIGINT EXIT
-
-  
   touch $BANDB
   echollog "debug" "Removing ipt chain"
   remove_ipt_chain
@@ -316,13 +309,13 @@ done
 if [ -f $configfile ];
 then
   . $configfile
-  echollog "debug" "Reading config file $configfile"
+  echollog "info" "Reading config file $configfile"
 else
   echoerr "Config file not found: $configfile"
   exit 254
 fi
 
 echollog "debug" "Starting main loop"
-#trap 'finish'  EXIT
+
 main_func
 
