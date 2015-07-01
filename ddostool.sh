@@ -10,8 +10,53 @@ echoerr()
 
 echolog() 
 { 
-  #Will write message to syslog
+# Will write message to syslog
   logger -p $DT_LOGFAC -t $DT_LOGTAG "$@"
+}
+
+echollog()
+{
+# Will write message to syslog according to level previously set in config file
+# accepted levels: none=0, info=1, warn=2, error=3, debug=4
+# default level is error
+  logStr=${2:-"no message"}
+  levelStr=${1:-"error"}
+  levelStr={$levelStr,,}
+  case "$levelStr" in
+	none)	level=0
+		;;
+	info)	level=1
+		;;
+	warn)	level=2
+		;;
+	error)	level=3
+		;;
+	debug)	level=4
+		;;
+	*)	level=3
+  esac
+
+  confLevelStr=${DT_LOGLVL:-"error"}
+  confLevel={$confLevelStr,,}
+  case "$confLevelStr" in
+        none)   confLevel=0
+                ;;
+        info)   confLevel=1
+                ;;
+        warn)   confLevel=2
+                ;;
+        error)  confLevel=3
+                ;;
+        debug)  confLevel=4
+                ;;
+        *)      confLevel=3
+  esac
+
+#  echolog "echollog: level=$level confLevel=$confLevel"
+  if [ "$level" -lt "$confLevel" ];
+  then
+    echolog $logStr
+  fi
 }
 
 check_binaries()
@@ -86,7 +131,7 @@ ban_ip()
   UTIME=$(date +%s)
   ban_rule $IPTOBAN
   echo "$UTIME $IPTOBAN" >> $BANDB
-  echolog "$IPTOBAN was banned."
+  echollog "warn" "$IPTOBAN was banned."
 }
 
 ban_ips()
@@ -113,6 +158,7 @@ unban_ips()
       if [ $(($RIGHTNOW - $utime)) -gt $DT_TIMEOUT ];
       then
         unban_rule $hostip
+        echollog "warn" "$IPTOBAN was unbanned."
       else
         echo "$UTIME $IPTOBAN" >> $TBANDB
       fi
@@ -127,7 +173,7 @@ ban_rule()
 {
 # Add iptables rule for single ip address
   IPTOBAN=$1
-  $IPTABLES -A $CHAINNAME -s $IPTOBAN/32 -j REJECT --reject-with icmp-port-unreachable 
+  $IPTABLES -I $CHAINNAME -s $IPTOBAN/32 -j REJECT --reject-with icmp-port-unreachable 
 }
 
 unban_rule()
@@ -163,44 +209,110 @@ create_ipt_chain()
 
 remove_ipt_chain()
 {
+  echollog "debug" "remove_ipt_chain()"
   $IPTABLES -n --list $CHAINNAME >/dev/null 2>&1
   if [ $? -eq 0 ];
   then
+    echollog "debug" "Flushing chain $CHAINNAME"
     $IPTABLES -F $CHAINNAME
     $IPTABLES -D INPUT -p tcp -m multiport --dports 80,443 -j $CHAINNAME
     $IPTABLES -X $CHAINNAME
+    echollog "debug" "Removed chain $CHAINNAME"
   fi
 }
 
-# Main
+
+show_help()
+{
+  echo "Help"
+}
+
+finish()
+{
+  echollog "debug" "finish()"
+  remove_ipt_chain 
+  echollog "debug" "Chain removed"
+}
+
+# Main loop
 main_func()
 {
+  local i=0
+  echollog "debug" "Checking binaries"
   check_binaries
 
-  trap "{ echolog \"Exiting\" ; remove_ipt_chain ; exit 0; }" SIGINT SIGTERM
+#  trap "{ echollog \"debug\" \"Exiting\" ; remove_ipt_chain ; exit 0; }" SIGINT SIGTERM
+#  trap finish SIGINT SIGTERM SIGQUIT EXIT
+#  trap 'finish' SIGTERM SIGINT EXIT
 
+  
   touch $BANDB
-  echolog "removing ipt chain"
+  echollog "debug" "Removing ipt chain"
   remove_ipt_chain
-  echolog "creating ipt chain"
+  echollog "debug" "Creating ipt chain"
   create_ipt_chain
-  echolog "starting loop"
-  ( 
-  while [ 1 -eq 1 ]
+  echollog "debug" "Starting main loop"
+  (
+  trap "{ finish; }" EXIT
+  while :
   do 
+    echollog "debug" "================================================================================"
+    echollog "debug" "Starting another iteration i=$i"
     TMPIPS=$($MKTEMP $DT_TMP/ddosips.XXXXXX)
+    echollog "debug" "Created $TMPIPS"
     TMPBADIPS=$($MKTEMP $DT_TMP/ddosbadips.XXXXXX)
+    echollog "debug" "Created $TMPBADIPS"
     TMPBANIPS=$($MKTEMP $DT_TMP/ddosbanips.XXXXXX)
+    echollog "debug" "Created $TMPBANIPS"
+    echollog "debug" "Finding bad IPs"
     find_bad
+    echollog "debug" "Removing ban for clean and expired banned IPs"
     unban_ips
+    echollog "debug" "Banning new IPs"
     ban_ips
+    echollog "debug" "Removing temporary files"
     rm -f $TMPBADIPS
     rm -f $TMPIPS
     rm -f $TMPBANIPS
+    echollog "debug" "Going to sleep for $DT_DELAY seconds."
     sleep $DT_DELAY
+    echollog "debug" "Slept"
+    i=$(( i + 1 ))
   done 
   ) &
 }
 
+#unset $configfile
+configfile=${1:-"/etc/ddostool.conf"}
+
+for arg in "$@"
+do
+  case "$arg" in
+	-c)	shift
+		configfile=${1:-"/etc/ddostool.conf"}
+		;;
+	-h)	show_help
+		exit 0
+		;;
+	--help)	show_help
+		exit 0
+		;;
+	-*)	echoerr "Unknown argument $arg"
+		exit 255
+		;;
+  esac
+done 
+
+if [ -f $configfile ];
+then
+  . $configfile
+  echollog "debug" "Reading config file $configfile"
+else
+  echoerr "Config file not found: $configfile"
+  exit 254
+fi
+
+echollog "debug" "Starting main loop"
+#trap 'finish'  EXIT
 main_func
 
