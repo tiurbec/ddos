@@ -138,6 +138,7 @@ ban_ip()
   ban_rule $IPTOBAN
   echo "$UTIME $IPTOBAN" >> $BANDB
   echollog "warn" "$IPTOBAN was banned."
+#  zabbix_sender -z 10.1.1.10 -p 10051 -s "tiurbec" -k ddos.ip -o "$IPTOBAN" >/dev/null 2>&1
 }
 
 ban_ips()
@@ -285,7 +286,32 @@ main_func()
   ) &
 }
 
+default_env()
+{
+  DT_TIMEOUT=60
+  DT_CONN=100
+  DT_TMP=/tmp
+  DT_WHITELIST=/etc/ddostool.white
+  DT_DELAY=60
+  BANDB=$DT_TMP/ddosbanned.txtdb
+  CHAINNAME=ddostool
+  DT_LOGFAC=local0.info
+  DT_LOGTAG=ddostool
+  DT_LOGLVL=debug
+  IPTABLES=/sbin/iptables
+  NETSTAT=/bin/netstat
+  AWK=/bin/awk
+  CUT=/bin/cut
+  SORT=/bin/sort
+  UNIQ=/usr/bin/uniq
+  HEAD=/usr/bin/head
+  MKTEMP=/bin/mktemp
+  PidFile=/var/run/ddostool.pid
+}
+
 #unset $configfile
+default_env
+
 configfile=${1:-"/etc/ddostool.conf"}
 
 for arg in "$@"
