@@ -141,7 +141,6 @@ ban_ip()
   if [ $ZABBIX_ENABLED -eq 1 ];
   then
     $ZABBIX_SENDER -c $ZABBIX_CONFIG -k ddos.ip -o "$IPTOBAN" >/dev/null 2>&1
-    $ZABBIX_SENDER -c $ZABBIX_CONFIG -k ddos.attack -o "1" >/dev/null 2>&1
     echollog "debug" "Zabbix server updated"
   fi
 }
@@ -156,6 +155,12 @@ ban_ips()
     fi
   done
   exec 4>&-
+  BANDBCOUNT=$(cat $BANDB | wc -l)
+  if [ $ZABBIX_ENABLED -eq 1 ];
+  then
+    $ZABBIX_SENDER -c $ZABBIX_CONFIG -k ddos.attack -o "$BANDBCOUNT" >/dev/null 2>&1
+    echollog "debug" "Zabbix server updated with number of banned hosts ($BANDBCOUNT)"
+  fi
 }
 
 unban_ips()
