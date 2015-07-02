@@ -317,6 +317,15 @@ default_env()
   ZABBIX_CONFIG=/etc/zabbix/zabbix_agentd.conf
 }
 
+ddos_status()
+{
+  echo "DDoS tool status information"
+  echo -n "Totally connected hosts: "
+  $NETSTAT -ntu | $AWK '{print $5}' | $CUT -d: -f1 | $SORT | $UNIQ | grep -P "^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$" | wc -l
+  echo "White-listed hosts: $(cat $DT_WHITELIST | wc -l)"
+  echo "Currently banned hosts: $(cat $BANDB | wc -l)"
+}
+
 #unset $configfile
 default_env
 
@@ -332,6 +341,12 @@ do
 		exit 0
 		;;
 	--help)	show_help
+		exit 0
+		;;
+	-s)	ddos_status
+		exit 0
+		;;
+	--status)	ddos_status
 		exit 0
 		;;
 	-*)	echoerr "Unknown argument $arg"
