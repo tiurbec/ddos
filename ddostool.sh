@@ -138,7 +138,12 @@ ban_ip()
   ban_rule $IPTOBAN
   echo "$UTIME $IPTOBAN" >> $BANDB
   echollog "warn" "$IPTOBAN was banned."
-#  zabbix_sender -z 10.1.1.10 -p 10051 -s "tiurbec" -k ddos.ip -o "$IPTOBAN" >/dev/null 2>&1
+  if [ $ZABBIX_ENABLED -eq 1 ];
+  then
+    $ZABBIX_SENDER -c $ZABBIX_CONFIG -k ddos.ip -o "$IPTOBAN" >/dev/null 2>&1
+    $ZABBIX_SENDER -c $ZABBIX_CONFIG -k ddos.attack -o "1" >/dev/null 2>&1
+    echollog "debug" "Zabbix server updated"
+  fi
 }
 
 ban_ips()
@@ -197,7 +202,7 @@ is_banned()
 {
 # Checks if there is a rule for ip in ddostool chain
   IPTOBAN=$1
-  RULESCOUNT=$($IPTABLES -n --list|grep \ $IPTOBAN\  |wc -l)
+  RULESCOUNT=$($IPTABLES -n --list $CHAINNAME | grep -c \ $IPTOBAN\  )
   if [ $RULESCOUNT -gt 0 ];
   then
     echo 1
@@ -307,6 +312,9 @@ default_env()
   HEAD=/usr/bin/head
   MKTEMP=/bin/mktemp
   PidFile=/var/run/ddostool.pid
+  ZABBIX_ENABLED=0
+  ZABBIX_SENDER=/usr/bin/zabbix_sender
+  ZABBIX_CONFIG=/etc/zabbix/zabbix_agentd.conf
 }
 
 #unset $configfile
