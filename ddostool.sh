@@ -20,7 +20,7 @@ echollog()
 # default level is error
   logStr=${2:-"no message"}
   levelStr=${1:-"error"}
-  levelStr={$levelStr,,}
+  levelStr=${levelStr,,}
   case "$levelStr" in
 	none)	level=0
 		;;
@@ -51,7 +51,7 @@ echollog()
         *)      confLevel=3
   esac
 
-  if [ "$level" -lt "$confLevel" ];
+  if [ $level -le $confLevel ];
   then
     echolog $logStr
   fi
