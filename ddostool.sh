@@ -252,13 +252,28 @@ finish()
   echollog "info" "Service ddostool stopped"
 }
 
+whitelist_count()
+{
+  if [ -f $DT_WHITELIST ];
+  then
+    echo $(grep -c -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" $DT_WHITELIST)
+  else
+    echo 0
+  fi
+}
+
 # Main loop
 main_func()
 {
   local i=0
   echollog "debug" "Checking binaries"
   check_binaries
-
+  
+#  if [ $(whitelist_count) -eq 0 ];
+#  then
+#    echollog "error" "There is no white-listed host. Check config file and white-list file"
+#    exit 2
+#  fi
   touch $BANDB
   echollog "debug" "Removing ipt chain"
   remove_ipt_chain
@@ -327,7 +342,7 @@ ddos_status()
   echo "DDoS tool status information"
   echo -n "Totally connected hosts: "
   $NETSTAT -ntu | $AWK '{print $5}' | $CUT -d: -f1 | $SORT | $UNIQ | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | wc -l
-  echo "White-listed hosts: $(cat $DT_WHITELIST | wc -l)"
+  echo "White-listed hosts: $(whitelist_count)"
   echo "Currently banned hosts: $(cat $BANDB | wc -l)"
 }
 
@@ -367,6 +382,12 @@ then
 else
   echoerr "Config file not found: $configfile"
   exit 254
+fi
+
+if [ $(whitelist_count) -eq 0 ];
+then
+  echollog "error" "There is no white-listed host. Check config file and white-list file"
+  exit 2
 fi
 
 echollog "debug" "Starting main loop"
