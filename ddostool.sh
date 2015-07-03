@@ -326,7 +326,7 @@ ddos_status()
 {
   echo "DDoS tool status information"
   echo -n "Totally connected hosts: "
-  $NETSTAT -ntu | $AWK '{print $5}' | $CUT -d: -f1 | $SORT | $UNIQ | grep -P "^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$" | wc -l
+  $NETSTAT -ntu | $AWK '{print $5}' | $CUT -d: -f1 | $SORT | $UNIQ | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | wc -l
   echo "White-listed hosts: $(cat $DT_WHITELIST | wc -l)"
   echo "Currently banned hosts: $(cat $BANDB | wc -l)"
 }
