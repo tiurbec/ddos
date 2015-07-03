@@ -44,6 +44,8 @@ start()
     rv=$?
     echo
     [ $rv -eq 0 ] && touch $lockfile
+    PID=`ps aux|grep -v 'grep'|grep -e $exec|awk '{print $2}'`
+    echo $PID > $pidfile
     return $rv
 }
 
