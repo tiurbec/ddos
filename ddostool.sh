@@ -346,6 +346,27 @@ ddos_status()
   echo "Currently banned hosts: $(cat $BANDB | wc -l)"
 }
 
+lists()
+{
+  echo "White listed hosts:"
+  cat $DT_WHITELIST
+  echo "----------------------------------------"
+  echo "Banned hosts:"
+  if [ -f $BANDB ];
+  then
+    exec 6<$BANDB
+    while read utime hostip <&6; do
+      if [ ! -z $utime ];
+      then
+        echo "$hostip expires in $(($RIGHTNOW - $utime))s"
+      fi
+    done
+    exec 6>&-
+  else
+    echo "No host is banned :)"
+  fi
+}
+
 #unset $configfile
 default_env
 
@@ -364,6 +385,9 @@ do
 		exit 0
 		;;
 	-s)	ddos_status
+		exit 0
+		;;
+	-l)	lists
 		exit 0
 		;;
 	--status)	ddos_status
