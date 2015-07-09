@@ -354,11 +354,13 @@ lists()
   echo "Banned hosts:"
   if [ -f $BANDB ];
   then
+    RIGHTNOW=$(date +%s)
+    LASTCHK=$(stat -c %Y $BANDB)
     exec 6<$BANDB
     while read utime hostip <&6; do
       if [ ! -z $utime ];
       then
-        echo "$hostip expires in $(($RIGHTNOW - $utime))s"
+        echo "$hostip banned for $(($RIGHTNOW - $utime))s expires in $(($LASTCHK + $DT_TIMEOUT - $RIGHTNOW))"
       fi
     done
     exec 6>&-
